@@ -114,6 +114,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
+export const firebaseProjectId = firebaseConfig.projectId || firebaseConfigData.projectId || "dark-karst-5xctm";
+
 // Firebase Auth & Google Auth Provider
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();

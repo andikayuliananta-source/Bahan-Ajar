@@ -189,6 +189,22 @@ npm start
 
 ---
 
+## 🌐 Panduan Deploy ke Netlify & Firebase Authorized Domains
+
+Ketika Anda mendeploy aplikasi ini ke **Netlify**, Firebase Authentication secara bawaan akan menolak login Google dengan pesan `auth/unauthorized-domain` hingga domain Netlify Anda dimasukkan ke whitelist.
+
+### Langkah Mengaktifkan Login Google di Netlify:
+1. Dapatkan nama domain Netlify Anda (misalnya: `aplikasi-guru-ai.netlify.app` atau domain kustom Anda).
+2. Buka [Firebase Console](https://console.firebase.google.com/) dan pilih proyek Anda.
+3. Masuk ke menu **Build** > **Authentication** > pilih tab **Settings**.
+4. Gulir ke bawah hingga menemukan bagian **Authorized domains**.
+5. Klik **Add domain**, lalu masukkan domain Netlify Anda (contoh: `aplikasi-guru-ai.netlify.app`), kemudian klik **Done / Save**.
+6. Refresh halaman aplikasi di Netlify, dan tombol **Lanjutkan dengan Google** akan langsung aktif dan berfungsi normal!
+
+> 💡 **Tip:** Di dalam aplikasi, jika domain belum terdaftar, sistem menyediakan tombol **"Salin Domain"**, link langsung ke Firebase Console, serta tombol **"Masuk Langsung sebagai Guru (1-Klik Bypass)"** agar Anda tetap dapat masuk dan bekerja tanpa menunggu!
+
+---
+
 ## 🔐 Kredensial Bawaan (Default Login)
 - **Metode 1**: Masuk menggunakan tombol **Lanjutkan dengan Google** (Firebase Auth).
 - **Metode 2**: Masuk dengan Kredensial Guru:

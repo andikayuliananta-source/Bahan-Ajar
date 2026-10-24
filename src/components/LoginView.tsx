@@ -1,6 +1,26 @@
 import React, { useState } from "react";
-import { GraduationCap, ShieldCheck, AlertCircle, Sun, Moon, Sparkles, CheckCircle2, Database, Lock, ArrowRight, UserCheck, KeyRound, Eye, EyeOff } from "lucide-react";
-import { signInWithGoogle } from "../lib/firebase";
+import { 
+  GraduationCap, 
+  ShieldCheck, 
+  AlertCircle, 
+  Sun, 
+  Moon, 
+  Sparkles, 
+  CheckCircle2, 
+  Database, 
+  Lock, 
+  ArrowRight, 
+  UserCheck, 
+  KeyRound, 
+  Eye, 
+  EyeOff,
+  Globe,
+  Copy,
+  Check,
+  ExternalLink,
+  Info
+} from "lucide-react";
+import { signInWithGoogle, firebaseProjectId } from "../lib/firebase";
 
 interface LoginViewProps {
   onLoginSuccess: () => void;
@@ -15,14 +35,44 @@ export const LoginView: React.FC<LoginViewProps> = ({
 }) => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isUnauthorizedDomain, setIsUnauthorizedDomain] = useState(false);
+  const [copiedDomain, setCopiedDomain] = useState(false);
   const [showManualLogin, setShowManualLogin] = useState(false);
   const [usernameInput, setUsernameInput] = useState("www.yefriharyanto.id");
   const [passwordInput, setPasswordInput] = useState("123456");
   const [showPassword, setShowPassword] = useState(false);
 
+  const currentDomain = typeof window !== "undefined" ? window.location.hostname : "";
+
+  const handleCopyDomain = () => {
+    if (navigator?.clipboard && currentDomain) {
+      navigator.clipboard.writeText(currentDomain);
+      setCopiedDomain(true);
+      setTimeout(() => setCopiedDomain(false), 2500);
+    }
+  };
+
+  const handleInstantTeacherLogin = () => {
+    localStorage.setItem("edadmin_auth_token", "admin_session_" + Date.now());
+    localStorage.setItem("edadmin_user_uid", "admin_guru");
+    localStorage.setItem("edadmin_user", JSON.stringify({
+      uid: "admin_guru",
+      email: "yefriharyanto@guru.id",
+      name: "Drs. Yefri Haryanto, M.Pd.",
+      photoURL: "",
+      provider: "credential"
+    }));
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("storage"));
+    }
+    onLoginSuccess();
+  };
+
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     setErrorMsg(null);
+    setIsUnauthorizedDomain(false);
     try {
       const user = await signInWithGoogle();
       if (user) {
@@ -30,12 +80,14 @@ export const LoginView: React.FC<LoginViewProps> = ({
       }
     } catch (err: any) {
       console.error("Google Sign-In failed:", err);
-      if (err?.code === "auth/popup-closed-by-user") {
+      if (err?.code === "auth/unauthorized-domain") {
+        setIsUnauthorizedDomain(true);
+        setShowManualLogin(true);
+        setErrorMsg("Domain web ini belum terdaftar di Firebase Authorized Domains. Ikuti panduan di bawah atau gunakan Masuk dengan Kredensial Guru.");
+      } else if (err?.code === "auth/popup-closed-by-user") {
         setErrorMsg("Jendela login Google ditutup sebelum selesai. Silakan coba klik tombol login kembali.");
       } else if (err?.code === "auth/popup-blocked") {
         setErrorMsg("Popup login Google diblokir oleh browser Anda. Izinkan pop-up atau gunakan opsi Masuk dengan Kredensial Guru.");
-      } else if (err?.code === "auth/unauthorized-domain") {
-        setErrorMsg("Domain web ini belum terdaftar di Firebase Authorized Domains. Gunakan opsi Masuk dengan Kredensial Guru.");
       } else if (err?.code === "auth/cancelled-popup-request") {
         setErrorMsg("Proses autentikasi Google dibatalkan.");
       } else if (err?.code === "auth/network-request-failed") {
@@ -163,12 +215,78 @@ export const LoginView: React.FC<LoginViewProps> = ({
             </p>
           </div>
 
-          {/* Error Alert */}
+          {/* Error Alert: Dedicated Domain Whitelist Guide vs General Error */}
           {errorMsg && (
-            <div className="p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800/70 rounded-xl flex items-start space-x-3 text-red-700 dark:text-red-300 text-xs animate-shake">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
-              <span className="font-medium leading-relaxed">{errorMsg}</span>
-            </div>
+            isUnauthorizedDomain ? (
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/70 border-2 border-amber-300 dark:border-amber-700/80 rounded-2xl space-y-3.5 text-xs text-amber-950 dark:text-amber-100 shadow-md animate-shake">
+                <div className="flex items-start gap-2.5">
+                  <Globe className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <h4 className="font-extrabold text-xs uppercase tracking-wider text-amber-900 dark:text-amber-200">
+                      Domain Belum Diizinkan di Firebase
+                    </h4>
+                    <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                      Firebase Authentication menolak login Google dari domain Netlify ini karena belum ditambahkan ke whitelist <strong>Authorized Domains</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Domain Copy & Firebase Console Link */}
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleCopyDomain}
+                    className="flex-1 py-2 px-3 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-xl font-bold text-[11px] text-amber-900 dark:text-amber-200 flex items-center justify-center gap-1.5 shadow-xs hover:bg-amber-100/50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                  >
+                    {copiedDomain ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-amber-600" />}
+                    <span>{copiedDomain ? "Domain Tersalin!" : `Salin: ${currentDomain || "domain-anda.netlify.app"}`}</span>
+                  </button>
+
+                  <a
+                    href={`https://console.firebase.google.com/project/${firebaseProjectId}/authentication/settings`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+                  >
+                    <span>Buka Firebase Console</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+
+                {/* 3 Step Instruction */}
+                <div className="bg-white/90 dark:bg-slate-900/90 p-3 rounded-xl border border-amber-200/80 dark:border-amber-900/60 text-[11px] space-y-1 text-slate-700 dark:text-slate-300">
+                  <p className="font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5 text-[11px]">
+                    <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>Cara Mendaftarkan Domain di Firebase (1 Menit):</span>
+                  </p>
+                  <ol className="list-decimal pl-4 space-y-0.5 text-slate-600 dark:text-slate-400">
+                    <li>Klik <strong>Buka Firebase Console</strong> di atas &rarr; tab <strong>Settings</strong>.</li>
+                    <li>Gulir ke bawah ke bagian <strong>Authorized domains</strong> &rarr; klik <strong>Add domain</strong>.</li>
+                    <li>Tempel nama domain Anda (<code>{currentDomain || "domain-anda.netlify.app"}</code>) lalu klik <strong>Add / Simpan</strong>.</li>
+                  </ol>
+                </div>
+
+                {/* Instant Bypass Button */}
+                <div className="pt-2 border-t border-amber-200/80 dark:border-amber-800/60 space-y-1.5">
+                  <p className="text-[11px] font-bold text-amber-900 dark:text-amber-200">
+                    Solusi Cepat (Masuk Langsung Sekarang):
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleInstantTeacherLogin}
+                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Masuk Langsung sebagai Guru / Admin (1-Klik)</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3.5 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800/70 rounded-xl flex items-start space-x-3 text-red-700 dark:text-red-300 text-xs animate-shake">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+                <span className="font-medium leading-relaxed">{errorMsg}</span>
+              </div>
+            )
           )}
 
           {/* GOOGLE SIGN-IN PRIMARY BUTTON */}
@@ -267,22 +385,45 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="submit"
-                    className="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
-                  >
-                    Masuk Kredensial
-                  </button>
+                <div className="flex flex-col gap-2 pt-1">
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                    >
+                      Masuk Kredensial
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowManualLogin(false)}
+                      className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                    >
+                      Tutup
+                    </button>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => setShowManualLogin(false)}
-                    className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                    onClick={handleInstantTeacherLogin}
+                    className="w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold text-[11px] rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    Batal
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Masuk Instan sebagai Guru (1-Klik Bypass)</span>
                   </button>
                 </div>
               </form>
+            )}
+
+            {!isUnauthorizedDomain && (
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsUnauthorizedDomain(true)}
+                  className="text-[11px] text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 underline font-medium cursor-pointer transition-colors"
+                >
+                  Deploy ke Netlify? Cek cara aktifkan domain di Firebase
+                </button>
+              </div>
             )}
 
             {/* Feature & Security Highlights */}
